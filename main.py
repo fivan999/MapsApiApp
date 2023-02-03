@@ -18,7 +18,7 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 @dataclass
 class MapsData:
-    scale: int = 10
+    spn: float = 0.003
     coords: List[float] = field(default_factory=list)
     display: str = "map"
 
@@ -37,32 +37,62 @@ class MainWindow(QMainWindow):
     def setupData(self) -> None:
         self.data = MapsData()
         self.data.coords = [30.312363709126018, 59.94157564755226]
+        self.cnt = 0
 
     def getPicture(self) -> None:
         response = get_place_map(self.data)
         if response:
             self.setPicture(response)
         else:
-            raise Exception("invalid request", response.status_code, response.reason)
+            print(response.request.url)
 
     def setPicture(self, response: requests.Response) -> None:
         with open("image.png", "wb") as file:
             file.write(response.content)
         pixmap = QPixmap("image.png")
         self.picture.setPixmap(pixmap)
-        print(1)
+        self.cnt += 1
+        print(self.cnt)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         key = event.key()
 
         if key == Qt.Key.Key_PageUp:
-            if self.data.scale != 17:
-                self.data.scale += 1
+            if self.data.spn != 89:
+                self.data.spn = min(self.data.spn * 2, 89)
                 self.getPicture()
 
         elif key == Qt.Key.Key_PageDown:
-            if self.data.scale != 0:
-                self.data.scale -= 1
+            if self.data.spn != 0.002:
+                self.data.spn = max(self.data.spn / 2, 0.002)
+                self.getPicture()
+
+        elif key == Qt.Key.Key_Up:
+            self.data.coords[1] += self.data.spn
+            if self.data.coords[1] > 85:
+                self.data.coords[1] = 85
+            else:
+                self.getPicture()
+
+        elif key == Qt.Key.Key_Down:
+            self.data.coords[1] -= self.data.spn
+            if self.data.coords[1] < 1:
+                self.data.coords[1] = min(self.data.spn, 1)
+            else:
+                self.getPicture()
+
+        elif key == Qt.Key.Key_Right:
+            self.data.coords[0] += self.data.spn
+            if self.data.coords[0] > 179:
+                self.data.coords[0] = 179
+            else:
+                self.getPicture()
+
+        elif key == Qt.Key.Key_Left:
+            self.data.coords[0] -= self.data.spn
+            if self.data.coords[0] < 1:
+                self.data.coords[0] = min(self.data.spn, 1)
+            else:
                 self.getPicture()
 
 
