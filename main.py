@@ -2,7 +2,7 @@ import sys
 import requests
 from typing import List
 from dataclasses import dataclass, field
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QApplication)
+from PyQt5.QtWidgets import (QMainWindow, QApplication, QRadioButton)
 from PyQt5.QtGui import QPixmap
 from PyQt5 import uic, QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import Qt
@@ -32,12 +32,17 @@ class MainWindow(QMainWindow):
         self.setupData()
         self.setWindowTitle("Best Yandex Maps App")
         uic.loadUi("UI/MainWindow.ui", self)
+        self.map_type_group.buttonClicked.connect(self.chooseMapType)
         self.getPicture()
 
     def setupData(self) -> None:
         self.data = MapsData()
         self.data.coords = [30.312363709126018, 59.94157564755226]
-        self.cnt = 0
+        self.map_type_choices = {
+            "Схема": "map",
+            "Спутник": "sat",
+            "Гибрид": "sat,skl"
+        }
 
     def getPicture(self) -> None:
         response = get_place_map(self.data)
@@ -51,8 +56,6 @@ class MainWindow(QMainWindow):
             file.write(response.content)
         pixmap = QPixmap("image.png")
         self.picture.setPixmap(pixmap)
-        self.cnt += 1
-        print(self.cnt)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         key = event.key()
@@ -95,9 +98,18 @@ class MainWindow(QMainWindow):
             else:
                 self.getPicture()
 
+    def chooseMapType(self, button: QRadioButton) -> None:
+        self.data.display = self.map_type_choices[button.text()]
+        self.getPicture()
+
+
+def except_hook(cls, exception, traceback):
+    sys.__excepthook__(cls, exception, traceback)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    sys.excepthook = except_hook
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
