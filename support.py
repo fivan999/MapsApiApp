@@ -16,11 +16,11 @@ def get_place_toponym(place: str) -> requests.Response:
 
 
 # получаем ответ от static maps
-def get_place_map(coords: list) -> requests.Response:
+def get_place_map(data) -> requests.Response:
     map_params = {
-        "ll": ",".join(list(map(str, coords))),
-        'l': 'map',
-        "z": 15
+        "ll": ",".join(list(map(str, data.coords))),
+        'l': data.display,
+        "z": data.scale
     }
 
     map_api_server = "http://static-maps.yandex.ru/1.x/"
