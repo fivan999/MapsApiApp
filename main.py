@@ -1,21 +1,19 @@
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QApplication, QLabel)
 from PyQt5.QtGui import QPixmap
+from PyQt5 import uic
 from support import get_place_toponym, get_place_map
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__()
-        self.coords = [30.312363709126018, 59.94157564755226]
+        super(QMainWindow, self).__init__()
         self.setupUI()
 
     def setupUI(self):
-        self.setWindowTitle("Best Yandex Maps Api")
-        self.setFixedSize(1000, 500)
-        self.picture = QLabel()
-        self.picture.setFixedSize(640, 480)
-        self.picture.move(20, 20)
+        self.coords = [30.312363709126018, 59.94157564755226]
+        self.setWindowTitle("Best Yandex Maps App")
+        uic.loadUi("UI/MainWindow.ui", self)
         self.getPicture()
 
     def getPicture(self):
@@ -23,7 +21,7 @@ class MainWindow(QMainWindow):
         if response:
             self.setPicture(response)
         else:
-            print("invalid request")
+            raise Exception("invalid request", response.status_code, response.reason)
 
     def setPicture(self, response):
         with open("image.png", "wb") as file:
