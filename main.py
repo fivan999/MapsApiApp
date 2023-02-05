@@ -1,4 +1,5 @@
 import sys
+import os
 import requests
 from typing import List
 from dataclasses import dataclass, field
@@ -9,13 +10,14 @@ from PyQt5.QtCore import Qt
 from support import get_place_map, get_place_toponym
 
 
+# для экранов с высоким разрешением
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-
 if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
 
+# текущее состояние карты
 @dataclass
 class MapsData:
     spn: float = 0.003
@@ -120,29 +122,38 @@ class MainWindow(QMainWindow):
         self.getPicture()
 
     # поиск места из ввода пользователя
-    def searchPlace(self) -> None:
+    def searchPlace(self, coords: str = "") -> None:
         place = self.search_place_input.toPlainText().strip()
-        if place:
-            toponym = get_place_toponym(place)
-            if toponym:
-                toponym = toponym.json()["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
-                self.setPlace(toponym)
+        if coords:
+            toponym = get_place_toponym(coords=coords)
+        elif place:
+            toponym = get_place_toponym(place_name=place)
+        else:
+            return
+
+        if toponym:
+            toponym = toponym.json()["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+            if coords:
+                self.setPlace(toponym, set_centre=False)
             else:
-                self.showMessage("reqerror", 
-                                 f"Ошибка запроса: {toponym.status_code}. Причина: {toponym.reason}.")
+                self.setPlace(toponym)
+        else:
+            self.showMessage("reqerror", 
+                            f"Ошибка запроса: {toponym.status_code}. Причина: {toponym.reason}")            
 
     # ставим метку на карте и позиционируем ее
-    def setPlace(self, toponym: dict) -> None:
+    def setPlace(self, toponym: dict, set_centre: bool = True) -> None:
         toponym_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
         toponym_coords = toponym["Point"]["pos"]
-        self.getPostalCode(toponym)
 
-        self.data.coords = list(map(float, toponym_coords.split(" ")))
+        if set_centre:
+            self.data.coords = list(map(float, toponym_coords.split()))
+            self.data.spn = 0.003
         self.data.address = toponym_address
-        self.data.spn = 0.003
-        self.data.pt = ",".join(list(map(str, self.data.coords))) + ",pm2rdm"
+        self.data.pt = ",".join(list(map(str, toponym_coords.split()))) + ",pm2rdm"
+
         self.getPicture()
-        
+        self.getPostalCode(toponym)
         self.resetPostalCode()
 
     # получаем почтовый код
@@ -156,6 +167,7 @@ class MainWindow(QMainWindow):
     def resetSearchResult(self) -> None:
         self.data.pt = ""
         self.data.postal_code = ""
+        self.data.address = ""
         self.search_address_edit.setPlainText("")
         self.getPicture()
 
@@ -166,7 +178,34 @@ class MainWindow(QMainWindow):
         else:
             self.search_address_edit.setPlainText(self.data.address)
 
+    # поиск места по клику ЛКМ
+    def searchPlaceClick(self, mouse_pos: tuple) -> None:
+        x, y = mouse_pos[0] - 10, mouse_pos[1] - 10
+        if 0 <= x <= 600 and 0 <= y <= 450:
+            x_size, y_size = self.data.spn / 600, self.data.spn / 450
+            coord_1 = self.data.coords[0] - self.data.spn / 2 + x_size * x 
+            coord_2 = self.data.coords[1] - self.data.spn / 2 + y_size * y
 
+            print(coord_1, coord_2, self.data.coords)
+            self.searchPlace(coords=f"{coord_1},{coord_2}")
+
+    # поиск организации по клику ПКМ
+    def searchOrganization(self, mouse_pos: tuple) -> None:
+        pass
+
+    # обрабатываем нажатия мыши
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        if event.button() == Qt.LeftButton:
+            self.searchPlaceClick((event.x(), event.y()))
+        else:
+            self.searchOrganization((event.x(), event.y()))
+
+    # удаляем картинку при закрытии приложения
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        os.remove("image.png")
+
+
+# ловим ошибки от PyQT
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
