@@ -20,7 +20,8 @@ def get_place_map(data) -> requests.Response:
     map_params = {
         "ll": ",".join(list(map(str, data.coords))),
         'l': data.display,
-        "z": data.scale
+        "spn": f"{data.spn},{data.spn}",
+        "pt": data.pt
     }
 
     map_api_server = "http://static-maps.yandex.ru/1.x/"
