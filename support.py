@@ -1,7 +1,8 @@
 import os
 
-import requests
 from dotenv import load_dotenv
+
+import requests
 
 # получаем ключ геокодера
 load_dotenv()
