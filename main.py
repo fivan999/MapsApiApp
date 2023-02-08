@@ -1,18 +1,26 @@
-import sys
 import os
-import requests
-from typing import List
+import sys
 from dataclasses import dataclass, field
-from PyQt5.QtWidgets import (QMainWindow, QApplication, QRadioButton, QMessageBox)
-from PyQt5.QtGui import QPixmap
-from PyQt5 import uic, QtGui, QtCore, QtWidgets
-from PyQt5.QtCore import Qt
-from support import get_place_map, get_place_toponym
+from typing import List
 
+import requests
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QMessageBox,
+    QRadioButton,
+)
+
+from support import get_place_map, get_place_toponym
 
 # для экранов с высоким разрешением
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+    QtWidgets.QApplication.setAttribute(
+        QtCore.Qt.AA_EnableHighDpiScaling, True
+    )
 if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
@@ -35,8 +43,8 @@ class MainWindow(QMainWindow):
 
     def setupUI(self) -> None:
         self.setupData()
-        self.setWindowTitle("Best Yandex Maps App")
         uic.loadUi("UI/MainWindow.ui", self)
+        self.setWindowTitle("Best Maps App")
         self.map_type_group.buttonClicked.connect(self.chooseMapType)
         self.search_place_button.clicked.connect(self.searchPlace)
         self.reset_search_button.clicked.connect(self.resetSearchResult)
@@ -50,7 +58,7 @@ class MainWindow(QMainWindow):
         self.map_type_choices = {
             "Схема": "map",
             "Спутник": "sat",
-            "Гибрид": "sat,skl"
+            "Гибрид": "sat,skl",
         }
 
     # получаем картинку запросом
@@ -59,8 +67,11 @@ class MainWindow(QMainWindow):
         if response:
             self.setPicture(response)
         else:
-            self.showMessage("reqerror", 
-                             f"Ошибка запроса: {response.status_code}. Причина: {response.reason}, {response.request.url}")
+            self.showMessage(
+                "reqerror",
+                f"Ошибка запроса: {response.status_code}. "
+                f"Причина: {response.reason}, {response.request.url}",
+            )
 
     # ставим изображение из ответа сервера
     def setPicture(self, response: requests.Response) -> None:
@@ -83,28 +94,28 @@ class MainWindow(QMainWindow):
                 self.data.spn = max(self.data.spn / 2, 0.002)
                 self.getPicture()
 
-        elif key == Qt.Key.Key_Up:
+        elif key == Qt.Key.Key_W:
             self.data.coords[1] += self.data.spn
             if self.data.coords[1] > 85:
                 self.data.coords[1] = 85
             else:
                 self.getPicture()
 
-        elif key == Qt.Key.Key_Down:
+        elif key == Qt.Key.Key_S:
             self.data.coords[1] -= self.data.spn
             if self.data.coords[1] < 1:
                 self.data.coords[1] = min(self.data.spn, 1)
             else:
                 self.getPicture()
 
-        elif key == Qt.Key.Key_Right:
+        elif key == Qt.Key.Key_D:
             self.data.coords[0] += self.data.spn
             if self.data.coords[0] > 179:
                 self.data.coords[0] = 179
             else:
                 self.getPicture()
 
-        elif key == Qt.Key.Key_Left:
+        elif key == Qt.Key.Key_A:
             self.data.coords[0] -= self.data.spn
             if self.data.coords[0] < 1:
                 self.data.coords[0] = min(self.data.spn, 1)
@@ -115,7 +126,7 @@ class MainWindow(QMainWindow):
     def showMessage(self, type: str, text: str) -> None:
         if type == "reqerror":
             QMessageBox.critical(self, "Ошибка запроса", text, QMessageBox.Ok)
- 
+
     # смена типа карты
     def chooseMapType(self, button: QRadioButton) -> None:
         self.data.display = self.map_type_choices[button.text()]
@@ -132,25 +143,36 @@ class MainWindow(QMainWindow):
             return
 
         if toponym:
-            toponym = toponym.json()["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+            toponym = toponym.json()["response"]["GeoObjectCollection"][
+                "featureMember"
+            ][0]["GeoObject"]
             if coords:
-                self.setPlace(toponym, set_centre=False)
+                self.setPlace(toponym, coords)
             else:
                 self.setPlace(toponym)
         else:
-            self.showMessage("reqerror", 
-                            f"Ошибка запроса: {toponym.status_code}. Причина: {toponym.reason}")            
+            self.showMessage(
+                "reqerror",
+                f"Ошибка запроса: {toponym.status_code}."
+                f" Причина: {toponym.reason}",
+            )
 
     # ставим метку на карте и позиционируем ее
-    def setPlace(self, toponym: dict, set_centre: bool = True) -> None:
-        toponym_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
+    def setPlace(self, toponym: dict, coords: str = "") -> None:
+        toponym_address = toponym["metaDataProperty"]["GeocoderMetaData"][
+            "text"
+        ]
         toponym_coords = toponym["Point"]["pos"]
 
-        if set_centre:
+        if not coords:
             self.data.coords = list(map(float, toponym_coords.split()))
             self.data.spn = 0.003
+            self.data.pt = (
+                ",".join(list(map(str, toponym_coords.split()))) + ",pm2rdm"
+            )
+        else:
+            self.data.pt = coords + ",pm2rdm"
         self.data.address = toponym_address
-        self.data.pt = ",".join(list(map(str, toponym_coords.split()))) + ",pm2rdm"
 
         self.getPicture()
         self.getPostalCode(toponym)
@@ -159,7 +181,10 @@ class MainWindow(QMainWindow):
     # получаем почтовый код
     def getPostalCode(self, toponym: dict) -> None:
         try:
-            self.data.postal_code = toponym["metaDataProperty"]["GeocoderMetaData"]['Address']['postal_code']
+            self.data.postal_code = toponym["metaDataProperty"][
+                "GeocoderMetaData"
+            ]
+            ['Address']['postal_code']
         except Exception:
             self.data.postal_code = ""
 
@@ -174,7 +199,9 @@ class MainWindow(QMainWindow):
     # реагируем на изменение чекбокса почтового кода
     def resetPostalCode(self) -> None:
         if self.postal_code_checkbox.isChecked() and self.data.postal_code:
-            self.search_address_edit.setPlainText(self.data.address + " (" + self.data.postal_code + ")")
+            self.search_address_edit.setPlainText(
+                self.data.address + " (" + self.data.postal_code + ")"
+            )
         else:
             self.search_address_edit.setPlainText(self.data.address)
 
@@ -182,11 +209,10 @@ class MainWindow(QMainWindow):
     def searchPlaceClick(self, mouse_pos: tuple) -> None:
         x, y = mouse_pos[0] - 10, mouse_pos[1] - 10
         if 0 <= x <= 600 and 0 <= y <= 450:
-            x_size, y_size = self.data.spn / 600, self.data.spn / 450
-            coord_1 = self.data.coords[0] - self.data.spn / 2 + x_size * x 
-            coord_2 = self.data.coords[1] - self.data.spn / 2 + y_size * y
+            coord_1 = self.data.coords[0]
+            coord_2 = self.data.coords[1]
 
-            print(coord_1, coord_2, self.data.coords)
+            print(coord_1, coord_2)
             self.searchPlace(coords=f"{coord_1},{coord_2}")
 
     # поиск организации по клику ПКМ
@@ -195,6 +221,7 @@ class MainWindow(QMainWindow):
 
     # обрабатываем нажатия мыши
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        return
         if event.button() == Qt.LeftButton:
             self.searchPlaceClick((event.x(), event.y()))
         else:

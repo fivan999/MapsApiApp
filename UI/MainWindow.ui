@@ -64,8 +64,14 @@
       <height>17</height>
      </rect>
     </property>
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
     <property name="text">
      <string>Схема</string>
+    </property>
+    <property name="shortcut">
+     <string/>
     </property>
     <property name="checked">
      <bool>true</bool>
@@ -83,8 +89,14 @@
       <height>17</height>
      </rect>
     </property>
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
     <property name="text">
      <string>Спутник</string>
+    </property>
+    <property name="shortcut">
+     <string/>
     </property>
     <attribute name="buttonGroup">
      <string notr="true">map_type_group</string>
@@ -99,8 +111,14 @@
       <height>17</height>
      </rect>
     </property>
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
     <property name="text">
      <string>Гибрид</string>
+    </property>
+    <property name="shortcut">
+     <string/>
     </property>
     <attribute name="buttonGroup">
      <string notr="true">map_type_group</string>
