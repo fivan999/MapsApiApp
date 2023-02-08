@@ -1,4 +1,5 @@
 # MapsApiApp
+[![Python package](https://github.com/fivan999/MapsApiApp/actions/workflows/python-package.yml/badge.svg)](https://github.com/fivan999/MapsApiApp/actions/workflows/python-package.yml)
 ## Приложение на PyQt, использующее возможности Api Яндекс.Карт
 
 ### Установка
