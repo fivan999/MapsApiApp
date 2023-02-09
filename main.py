@@ -15,7 +15,12 @@ from PyQt5.QtWidgets import (
 
 import requests
 
-from support import get_place_map, get_place_toponym
+from support import (
+    get_organization,
+    get_place_map,
+    get_place_toponym,
+    lonlat_distance,
+)
 
 # для экранов с высоким разрешением
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
@@ -206,23 +211,64 @@ class MainWindow(QMainWindow):
         else:
             self.search_address_edit.setPlainText(self.data.address)
 
-    # поиск места по клику ЛКМ
-    def searchPlaceClick(self, mouse_pos: tuple) -> None:
+    # получаем координаты точки из клика по карте
+    def mouseToCoords(self, mouse_pos: tuple) -> tuple:
         x, y = mouse_pos[0] - 10, mouse_pos[1] - 10
         if 0 <= x <= 600 and 0 <= y <= 450:
             coord_1 = self.data.coords[0]
             coord_2 = self.data.coords[1]
+            return (coord_1, coord_2)
+        else:
+            return (False, False)
 
-            print(coord_1, coord_2)
+    # поиск места по клику ЛКМ
+    def searchPlaceClick(self, mouse_pos: tuple) -> None:
+        coord_1, coord_2 = self.mouseToCoords(mouse_pos)
+        if coord_1:
             self.searchPlace(coords=f'{coord_1},{coord_2}')
 
     # поиск организации по клику ПКМ
     def searchOrganization(self, mouse_pos: tuple) -> None:
-        pass
+        coord_1, coord_2 = self.mouseToCoords(mouse_pos)
+        if coord_1:
+            response = get_organization(f'{coord_1},{coord_2}')
+            if response:
+                response_json = response.json()
+                try:
+                    organization = response_json['features'][0]
+                    # название организации
+                    org_name = organization['properties']['CompanyMetaData'][
+                        'name'
+                    ]
+                    # адрес организации
+                    org_address = organization['properties'][
+                        'CompanyMetaData'
+                    ]['address']
+                    # координаты
+                    coords = organization['geometry']['coordinates']
+
+                    # расстояние не более 50м
+                    if lonlat_distance(self.data.coords, coords) <= 50:
+                        self.data.pt = (
+                            ','.join(list(map(str, coords))) + ',pm2rdm'
+                        )
+                        self.data.postal_code = ''
+                        self.data.address = org_name + '\n' + org_address
+
+                        self.getPicture()
+                        self.resetPostalCode()
+                except Exception:
+                    return
+            else:
+                self.showMessage(
+                    'reqerror',
+                    f'Ошибка запроса: {response.status_code}. '
+                    f'Причина: {response.reason}, {response.request.url}',
+                )
 
     # обрабатываем нажатия мыши
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
-        return
+        # return
         if event.button() == Qt.LeftButton:
             self.searchPlaceClick((event.x(), event.y()))
         else:
