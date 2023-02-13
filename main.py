@@ -216,11 +216,13 @@ class MainWindow(QMainWindow):
         x, y = mouse_pos[0] - 10, mouse_pos[1] - 10
         if 0 <= x <= 600 and 0 <= y <= 450:
             coord_1 = (
-                self.data.coords[0] - self.data.spn / 2
+                self.data.coords[0]
+                - self.data.spn / 2
                 + self.data.spn / 600 * x
             )
             coord_2 = (
-                self.data.coords[1] - self.data.spn / 2
+                self.data.coords[1]
+                - self.data.spn / 2
                 + self.data.spn / 450 * y
             )
             return (coord_1, coord_2)
