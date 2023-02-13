@@ -12,10 +12,10 @@ GEOCODER_APIKEY = os.environ.get('GEOCODER_APIKEY', default='default')
 ORGANIZATION_APIKEY = os.environ.get('ORGANIZATION_APIKEY', default='default')
 
 
-# получаем ответ от geocoder
 def get_place_toponym(
     place_name: str = None, coords: str = None
 ) -> requests.Response:
+    """получаем ответ от geocoder"""
     geocoder_api_server = 'http://geocode-maps.yandex.ru/1.x/'
 
     geocoder_params = {
@@ -31,13 +31,14 @@ def get_place_toponym(
     return response
 
 
-# получаем ответ от static maps
 def get_place_map(data) -> requests.Response:
+    """получаем ответ от static maps"""
     map_params = {
         'll': ','.join(list(map(str, data.coords))),
         'l': data.display,
         'spn': f'{data.spn},{data.spn}',
         'pt': data.pt,
+        'size': '600,450',
     }
 
     map_api_server = 'http://static-maps.yandex.ru/1.x/'
@@ -45,8 +46,8 @@ def get_place_map(data) -> requests.Response:
     return response
 
 
-# получаем ближайшую организацию по координатам
 def get_organization(coords: str) -> requests.Response:
+    """получаем ближайшую организацию по координатам"""
     search_api_server = 'https://search-maps.yandex.ru/v1/'
     api_key = ORGANIZATION_APIKEY
 
