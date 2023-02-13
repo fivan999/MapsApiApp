@@ -57,8 +57,8 @@ class MainWindow(QMainWindow):
         self.postal_code_checkbox.stateChanged.connect(self.resetPostalCode)
         self.getPicture()
 
-    # устанавливаем начальные координаты
     def setupData(self) -> None:
+        """устанавливаем начальные координаты"""
         self.data = MapsData()
         self.data.coords = [30.312363709126018, 59.94157564755226]
         self.map_type_choices = {
@@ -67,8 +67,8 @@ class MainWindow(QMainWindow):
             'Гибрид': 'sat,skl',
         }
 
-    # получаем картинку запросом
     def getPicture(self) -> None:
+        """получаем картинку запросом"""
         response = get_place_map(self.data)
         if response:
             self.setPicture(response)
@@ -79,15 +79,15 @@ class MainWindow(QMainWindow):
                 f'Причина: {response.reason}, {response.request.url}',
             )
 
-    # ставим изображение из ответа сервера
     def setPicture(self, response: requests.Response) -> None:
+        """ставим изображение из ответа сервера"""
         with open('image.png', 'wb') as file:
             file.write(response.content)
         pixmap = QPixmap('image.png')
         self.picture.setPixmap(pixmap)
 
-    # обработка клавиш
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        """обработка клавиш"""
         key = event.key()
 
         if key == Qt.Key.Key_PageUp:
@@ -128,18 +128,18 @@ class MainWindow(QMainWindow):
             else:
                 self.getPicture()
 
-    # сообщение пользователю
-    def showMessage(self, type: str, text: str) -> None:
-        if type == 'reqerror':
+    def showMessage(self, action: str, text: str) -> None:
+        """сообщение пользователю"""
+        if action == 'reqerror':
             QMessageBox.critical(self, 'Ошибка запроса', text, QMessageBox.Ok)
 
-    # смена типа карты
     def chooseMapType(self, button: QRadioButton) -> None:
+        """смена типа карты"""
         self.data.display = self.map_type_choices[button.text()]
         self.getPicture()
 
-    # поиск места из ввода пользователя
     def searchPlace(self, coords: str = '') -> None:
+        """поиск места из ввода пользователя"""
         place = self.search_place_input.toPlainText().strip()
         if coords:
             toponym = get_place_toponym(coords=coords)
@@ -163,8 +163,8 @@ class MainWindow(QMainWindow):
                 f' Причина: {toponym.reason}',
             )
 
-    # ставим метку на карте и позиционируем ее
     def setPlace(self, toponym: dict, coords: str = '') -> None:
+        """ставим метку на карте и позиционируем ее"""
         toponym_address = toponym['metaDataProperty']['GeocoderMetaData'][
             'text'
         ]
@@ -184,8 +184,8 @@ class MainWindow(QMainWindow):
         self.getPostalCode(toponym)
         self.resetPostalCode()
 
-    # получаем почтовый код
     def getPostalCode(self, toponym: dict) -> None:
+        """получаем почтовый код"""
         try:
             self.data.postal_code = toponym['metaDataProperty'][
                 'GeocoderMetaData'
@@ -194,16 +194,16 @@ class MainWindow(QMainWindow):
         except Exception:
             self.data.postal_code = ''
 
-    # удаляем метку
     def resetSearchResult(self) -> None:
+        """удаляем метку"""
         self.data.pt = ''
         self.data.postal_code = ''
         self.data.address = ''
         self.search_address_edit.setPlainText('')
         self.getPicture()
 
-    # реагируем на изменение чекбокса почтового кода
     def resetPostalCode(self) -> None:
+        """реагируем на изменение чекбокса почтового кода"""
         if self.postal_code_checkbox.isChecked() and self.data.postal_code:
             self.search_address_edit.setPlainText(
                 self.data.address + ' (' + self.data.postal_code + ')'
@@ -211,24 +211,32 @@ class MainWindow(QMainWindow):
         else:
             self.search_address_edit.setPlainText(self.data.address)
 
-    # получаем координаты точки из клика по карте
     def mouseToCoords(self, mouse_pos: tuple) -> tuple:
+        """получаем координаты точки из клика по карте"""
         x, y = mouse_pos[0] - 10, mouse_pos[1] - 10
         if 0 <= x <= 600 and 0 <= y <= 450:
-            coord_1 = self.data.coords[0]
-            coord_2 = self.data.coords[1]
+            coord_1 = (
+                self.data.coords[0]
+                - self.data.spn / 2
+                + self.data.spn / 600 * x
+            )
+            coord_2 = (
+                self.data.coords[1]
+                - self.data.spn / 2
+                + self.data.spn / 450 * y
+            )
             return (coord_1, coord_2)
         else:
             return (False, False)
 
-    # поиск места по клику ЛКМ
     def searchPlaceClick(self, mouse_pos: tuple) -> None:
+        """поиск места по клику ЛКМ"""
         coord_1, coord_2 = self.mouseToCoords(mouse_pos)
         if coord_1:
             self.searchPlace(coords=f'{coord_1},{coord_2}')
 
-    # поиск организации по клику ПКМ
     def searchOrganization(self, mouse_pos: tuple) -> None:
+        """поиск организации по клику ПКМ"""
         coord_1, coord_2 = self.mouseToCoords(mouse_pos)
         if coord_1:
             response = get_organization(f'{coord_1},{coord_2}')
@@ -266,16 +274,15 @@ class MainWindow(QMainWindow):
                     f'Причина: {response.reason}, {response.request.url}',
                 )
 
-    # обрабатываем нажатия мыши
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
-        # return
+        """обрабатываем нажатия мыши"""
         if event.button() == Qt.LeftButton:
             self.searchPlaceClick((event.x(), event.y()))
         else:
             self.searchOrganization((event.x(), event.y()))
 
-    # удаляем картинку при закрытии приложения
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """удаляем картинку при закрытии приложения"""
         os.remove('image.png')
 
 
